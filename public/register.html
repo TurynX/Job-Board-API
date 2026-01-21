@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - JobBoard</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      padding: 2rem 0;
+    }
+    .register-card {
+      width: 100%;
+      max-width: 450px;
+      padding: 2.5rem;
+    }
+    .register-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .register-header h1 {
+      font-size: 1.75rem;
+      color: var(--text-main);
+    }
+    .error-msg {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 0.75rem;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+      display: none;
+    }
+    #companyFields {
+      display: none;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-color);
+    }
+    #companyFields.show {
+      display: block;
+    }
+    .company-header {
+      margin-bottom: 1rem;
+      color: var(--primary-color);
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <div class="card register-card">
+    <div class="register-header">
+      <a href="/" class="logo" style="display: block; margin-bottom: 1rem;">JobBoard</a>
+      <h1>Create Account</h1>
+      <p class="text-muted">Join our community today</p>
+    </div>
+
+    <div id="errorMsg" class="error-msg"></div>
+
+    <form id="registerForm">
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" class="form-control" placeholder="name@example.com" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" class="form-control" placeholder="••••••••" required minlength="6">
+        <p class="text-muted" style="font-size: 0.75rem; mt-1">Minimum 6 characters</p>
+      </div>
+      <div class="form-group">
+        <label for="role">Account Type</label>
+        <select id="role" class="form-control" required>
+          <option value="CANDIDATE">Candidate (Looking for jobs)</option>
+          <option value="COMPANY">Company (Hiring talent)</option>
+        </select>
+      </div>
+
+      <div id="companyFields">
+        <div class="company-header">Company Details</div>
+        <div class="form-group">
+          <label for="companyName">Company Name *</label>
+          <input type="text" id="companyName" class="form-control" placeholder="Acme Corp">
+        </div>
+        <div class="form-group">
+          <label for="companyWebsite">Website *</label>
+          <input type="url" id="companyWebsite" class="form-control" placeholder="https://acme.com">
+        </div>
+        <div class="form-group">
+          <label for="companyDescription">Description</label>
+          <input type="text" id="companyDescription" class="form-control" placeholder="Brief description">
+        </div>
+      </div>
+
+      <button type="submit" id="submitBtn" class="btn btn-primary" style="width: 100%; padding: 0.75rem; margin-top: 1rem;">
+        Create Account
+      </button>
+    </form>
+
+    <div class="text-center mt-4">
+      <p class="text-muted" style="font-size: 0.875rem;">
+        Already have an account? <a href="/login.html" style="color: var(--primary-color); font-weight: 600; text-decoration: none;">Sign in</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('registerForm');
+    const roleSelect = document.getElementById('role');
+    const companyFields = document.getElementById('companyFields');
+    const errorMsg = document.getElementById('errorMsg');
+    const submitBtn = document.getElementById('submitBtn');
+
+    roleSelect.addEventListener('change', function() {
+      if (this.value === 'COMPANY') {
+        companyFields.classList.add('show');
+        document.getElementById('companyName').required = true;
+        document.getElementById('companyWebsite').required = true;
+      } else {
+        companyFields.classList.remove('show');
+        document.getElementById('companyName').required = false;
+        document.getElementById('companyWebsite').required = false;
+      }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.style.display = 'none';
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner"></span> Creating account...';
+
+      const payload = {
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+        role: roleSelect.value
+      };
+
+      if (payload.role === 'COMPANY') {
+        payload.companyName = document.getElementById('companyName').value;
+        payload.companyWebsite = document.getElementById('companyWebsite').value;
+        const desc = document.getElementById('companyDescription').value;
+        if (desc) payload.companyDescription = desc;
+      }
+
+      try {
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Registration failed');
+        }
+
+        alert('Account created successfully! Please login.');
+        window.location.href = '/login.html';
+      } catch (error) {
+        errorMsg.textContent = error.message;
+        errorMsg.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Account';
+      }
+    });
+  </script>
+</body>
+</html>

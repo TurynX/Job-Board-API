@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browse Jobs - JobBoard</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .search-section {
+      background: white;
+      padding: 2rem 0;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 2rem;
+    }
+    .search-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+    }
+    .job-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    .job-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: transform 0.2s;
+    }
+    .job-card:hover {
+      transform: translateY(-2px);
+    }
+    .job-info h3 {
+      font-size: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+    .job-meta {
+      display: flex;
+      gap: 1rem;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
+    @media (max-width: 640px) {
+      .job-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+      .search-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="/" class="logo">JobBoard</a>
+      <div class="nav-links" id="navLinks">
+        <a href="/jobList.html">Jobs</a>
+        <a href="/login.html" class="btn btn-outline">Login</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="search-section">
+    <div class="container">
+      <div class="search-grid">
+        <input type="text" id="searchInput" class="form-control" placeholder="Search by title, location, or company...">
+        <button class="btn btn-primary">Search</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="container">
+    <div class="job-grid" id="jobsContainer">
+      <div class="text-center py-8">
+        <p class="text-muted">Loading jobs...</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const userRaw = localStorage.getItem('user');
+    const navLinks = document.getElementById('navLinks');
+
+    if (!token || !userRaw) {
+      window.location.href = '/login.html';
+    }
+
+    const user = JSON.parse(userRaw);
+    
+    // Update Navbar
+    let dashboardLink = '/jobList.html';
+    if (user.role === 'ADMIN') dashboardLink = '/admin-dashboard.html';
+    else if (user.role === 'COMPANY') dashboardLink = '/companyDashBoard.html';
+    else dashboardLink = '/myApplications.html';
+
+    navLinks.innerHTML = `
+      <a href="/jobList.html">Jobs</a>
+      <a href="${dashboardLink}">Dashboard</a>
+      <button onclick="logout()" class="btn btn-outline">Logout</button>
+    `;
+
+    let allJobs = [];
+
+    async function fetchJobs() {
+      try {
+        const response = await fetch('/api/jobs', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (response.status === 401) {
+          logout();
+          return;
+        }
+
+        // Handle both possible response structures
+        allJobs = data.jobs || data.data || [];
+        displayJobs(allJobs);
+      } catch (error) {
+        document.getElementById('jobsContainer').innerHTML = '<div class="card text-center"><p>Failed to load jobs.</p></div>';
+      }
+    }
+
+    function displayJobs(jobs) {
+      const container = document.getElementById('jobsContainer');
+      if (jobs.length === 0) {
+        container.innerHTML = '<div class="card text-center"><p>No jobs found.</p></div>';
+        return;
+      }
+
+      container.innerHTML = jobs.map(job => `
+        <div class="card job-card">
+          <div class="job-info">
+            <span class="badge badge-success mb-2">${job.category}</span>
+            <h3>${job.title}</h3>
+            <p class="text-muted" style="font-size: 0.9rem;">${job.companyName || 'Company'}</p>
+            <div class="job-meta">
+              <span>📍 ${job.location}</span>
+              <span>💰 ${job.salary ? '$' + job.salary.toLocaleString() : 'Not specified'}</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <a href="/jobDetails.html?id=${job.id}" class="btn btn-outline">Details</a>
+            <button onclick="applyQuick('${job.id}')" class="btn btn-primary">Quick Apply</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase();
+      const filtered = allJobs.filter(job => 
+        job.title.toLowerCase().includes(term) ||
+        job.location.toLowerCase().includes(term) ||
+        (job.companyName && job.companyName.toLowerCase().includes(term))
+      );
+      displayJobs(filtered);
+    });
+
+    async function applyQuick(jobId) {
+      const cvUrl = prompt('Enter your CV URL:');
+      if (!cvUrl) return;
+
+      try {
+        const response = await fetch(`/api/jobs/${jobId}/apply`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ cvUrl })
+        });
+        const data = await response.json();
+        if (response.ok) alert('Application submitted!');
+        else alert(data.message || 'Failed to apply');
+      } catch (error) {
+        alert('Error submitting application');
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    fetchJobs();
+  </script>
+</body>
+</html>

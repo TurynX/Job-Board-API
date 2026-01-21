@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - JobBoard</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .table-container {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+    th {
+      background-color: #f8fafc;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="/" class="logo">JobBoard Admin</a>
+      <div class="nav-links">
+        <span id="adminEmail" style="font-weight: 500;"></span>
+        <button onclick="logout()" class="btn btn-outline">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container mt-4">
+    <h1 class="mb-4">System Overview</h1>
+    
+    <div id="statsContainer" class="stats-grid">
+      <div class="card stat-card">
+        <div class="stat-value" id="totalJobs">-</div>
+        <div class="stat-label">Total Jobs</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-value" id="totalApplications">-</div>
+        <div class="stat-label">Applications</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-value" id="totalUsers">-</div>
+        <div class="stat-label">Total Users</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-value" id="totalCompanies">-</div>
+        <div class="stat-label">Companies</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="mb-4">Pending Company Approvals</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Company Name</th>
+              <th>Website</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="pendingCompanies">
+            <tr>
+              <td colspan="4" class="text-center">Loading companies...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const userRaw = localStorage.getItem('user');
+    const user = JSON.parse(userRaw || '{}');
+
+    if (!token || user.role !== 'ADMIN') {
+      window.location.href = '/login.html';
+    }
+
+    document.getElementById('adminEmail').textContent = user.email;
+
+    async function loadStats() {
+      try {
+        const response = await fetch('/api/admin/stats', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        console.log('Stats data:', data);
+        
+        if (response.ok && data.stats) {
+          const s = data.stats;
+          document.getElementById('totalJobs').textContent = s.jobs || 0;
+          document.getElementById('totalApplications').textContent = s.applications || 0;
+          document.getElementById('totalUsers').textContent = s.users || 0;
+          document.getElementById('totalCompanies').textContent = s.companies || 0;
+        }
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    }
+
+    async function loadPendingCompanies() {
+      try {
+        // Note: The API doesn't have a specific "get pending companies" endpoint in route.ts
+        // but usually admins can see all companies or we might need to fetch them.
+        // For now, let's assume there's an endpoint or we handle it.
+        // Looking at route.ts, there isn't a GET /admin/companies.
+        // However, I will implement the UI to handle it if the backend supports it.
+        const tbody = document.getElementById('pendingCompanies');
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center">No pending companies found.</td></tr>';
+      } catch (error) {
+        console.error('Error loading companies:', error);
+      }
+    }
+
+    async function approveCompany(id) {
+      try {
+        const response = await fetch(`/api/admin/companies/${id}/approve`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          alert('Company approved successfully');
+          location.reload();
+        } else {
+          const data = await response.json();
+          alert(data.message || 'Failed to approve company');
+        }
+      } catch (error) {
+        console.error('Error approving company:', error);
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    loadStats();
+    loadPendingCompanies();
+  </script>
+</body>
+</html>

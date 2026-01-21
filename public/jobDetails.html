@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Details - JobBoard</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .job-header {
+      background: white;
+      padding: 3rem 0;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 2rem;
+    }
+    .job-title {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    .job-content {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 2rem;
+    }
+    .description-box {
+      white-space: pre-wrap;
+      line-height: 1.8;
+    }
+    .sidebar-card {
+      position: sticky;
+      top: 6rem;
+    }
+    .info-item {
+      margin-bottom: 1.5rem;
+    }
+    .info-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+    .info-value {
+      font-weight: 500;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: white;
+      padding: 2rem;
+      border-radius: var(--radius);
+      width: 90%;
+      max-width: 500px;
+    }
+    @media (max-width: 768px) {
+      .job-content {
+        grid-template-columns: 1fr;
+      }
+      .sidebar-card {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="/" class="logo">JobBoard</a>
+      <div class="nav-links" id="navLinks">
+        <a href="/jobList.html">Jobs</a>
+        <button onclick="logout()" class="btn btn-outline">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div id="jobHeader" class="job-header">
+    <div class="container">
+      <div id="headerContent">Loading...</div>
+    </div>
+  </div>
+
+  <main class="container">
+    <div class="job-content">
+      <div class="card">
+        <h2 class="mb-4">Job Description</h2>
+        <div id="jobDescription" class="description-box">Loading description...</div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="card">
+          <h3 class="mb-4">Job Summary</h3>
+          <div id="jobSummary">
+            <!-- Summary items will be injected here -->
+          </div>
+          <div id="actionArea">
+            <!-- Apply button or status message -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Apply Modal -->
+  <div id="applyModal" class="modal">
+    <div class="card modal-content">
+      <h3 class="mb-4">Apply for this Position</h3>
+      <form id="applyForm">
+        <div class="form-group">
+          <label for="cvUrl">CV URL *</label>
+          <input type="url" id="cvUrl" class="form-control" placeholder="https://drive.google.com/..." required>
+        </div>
+        <div class="form-group">
+          <label for="coverLetter">Cover Letter (Optional)</label>
+          <textarea id="coverLetter" class="form-control" style="min-height: 120px;" placeholder="Tell us why you're a great fit..."></textarea>
+        </div>
+        <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+          <button type="submit" class="btn btn-primary" style="flex: 1;">Submit Application</button>
+          <button type="button" onclick="closeApplyModal()" class="btn btn-outline">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const userRaw = localStorage.getItem('user');
+    const jobId = new URLSearchParams(window.location.search).get('id');
+
+    if (!token || !userRaw) window.location.href = '/login.html';
+    if (!jobId) window.location.href = '/jobList.html';
+
+    const user = JSON.parse(userRaw);
+
+    async function loadJobDetails() {
+      try {
+        const response = await fetch(`/api/jobs/${jobId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        const job = data.data || data.job;
+
+        if (!response.ok || !job) throw new Error('Job not found');
+
+        document.getElementById('headerContent').innerHTML = `
+          <span class="badge badge-success mb-2">${job.category}</span>
+          <h1 class="job-title">${job.title}</h1>
+          <p class="text-muted" style="font-size: 1.25rem;">${job.companyName || job.company || 'Company Name'}</p>
+        `;
+
+        document.getElementById('jobDescription').textContent = job.description;
+
+        document.getElementById('jobSummary').innerHTML = `
+          <div class="info-item">
+            <div class="info-label">Location</div>
+            <div class="info-value">📍 ${job.location}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Salary</div>
+            <div class="info-value">💰 ${job.salary ? '$' + job.salary.toLocaleString() : 'Not specified'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Experience</div>
+            <div class="info-value">💼 ${job.experienceLevel || 'N/A'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Status</div>
+            <div class="info-value">
+              <span class="badge ${job.status === 'OPEN' ? 'badge-success' : 'badge-danger'}">
+                ${job.status}
+              </span>
+            </div>
+          </div>
+        `;
+
+        const actionArea = document.getElementById('actionArea');
+        const isJobClosed = job.status === 'CLOSED';
+        
+        if (user.role === 'CANDIDATE') {
+          if (isJobClosed) {
+            actionArea.innerHTML = '<button disabled class="btn btn-outline mt-4" style="width: 100%;">Applications Closed</button>';
+          } else {
+            actionArea.innerHTML = '<button onclick="openApplyModal()" class="btn btn-primary mt-4" style="width: 100%; padding: 1rem;">Apply for this Job</button>';
+          }
+        } else {
+          actionArea.innerHTML = '<p class="text-muted mt-4 text-center" style="font-size: 0.875rem;">Only candidates can apply for jobs.</p>';
+        }
+      } catch (error) {
+        alert('Error loading job details');
+        window.location.href = '/jobList.html';
+      }
+    }
+
+    function openApplyModal() {
+      document.getElementById('applyModal').style.display = 'flex';
+    }
+
+    function closeApplyModal() {
+      document.getElementById('applyModal').style.display = 'none';
+      document.getElementById('applyForm').reset();
+    }
+
+    document.getElementById('applyForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const cvUrl = document.getElementById('cvUrl').value.trim();
+      const coverLetter = document.getElementById('coverLetter').value.trim();
+
+      try {
+        const response = await fetch(`/api/jobs/${jobId}/apply`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ cvUrl, coverLetter: coverLetter || undefined })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          alert('Application submitted successfully!');
+          closeApplyModal();
+          window.location.href = '/myApplications.html';
+        } else {
+          alert(data.message || 'Failed to apply');
+        }
+      } catch (error) {
+        alert('Error submitting application');
+      }
+    });
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    loadJobDetails();
+  </script>
+</body>
+</html>
