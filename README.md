@@ -1,53 +1,66 @@
 Job Board API
 
-Backend API for a Job Board platform where companies can post job openings, candidates can apply, and administrators moderate and monitor the system.
+A backend service for a Job Board platform built with Fastify and TypeScript.
+Designed to handle real-world recruitment workflows with secure authentication, role-based access control, and administrative moderation.
 
-🚀 Features
-Authentication & Authorization
+Overview
+
+This project implements the backend of a job board system where companies can publish job opportunities, candidates can apply to them, and administrators ensure platform integrity.
+
+The main focus is backend architecture, security, and business logic rather than frontend concerns.
+
+Key Features
 
 JWT-based authentication
 
 Role-based access control (RBAC)
 
-Roles: CANDIDATE, COMPANY, ADMIN
+Company approval workflow managed by administrators
 
-Company Management
+Job posting and management for approved companies
 
-Company profile creation
+Candidate application lifecycle with status tracking
 
-Admin approval required before posting jobs
+Admin moderation and system statistics
 
-Company profile update
+Clean and scalable backend architecture
 
-Job Management
+Roles
+Candidate
 
-Create, update, and delete job postings (approved companies only)
+Browse job listings
 
-Public job listing and job details
+Apply for open positions
 
-Job status control (OPEN, CLOSED)
+Company
 
-Job Applications
+Create and manage job postings
 
-Candidates can apply to jobs
+Requires admin approval
 
-CV upload support
+Admin
 
-Prevent duplicate applications
+Approve company accounts
 
-Application status workflow:
+Moderate job postings
 
-APPLIED → REVIEWING → INTERVIEW → OFFER → REJECTED
+Monitor system statistics
 
-Admin Panel (API)
+Application Workflow
 
-Approve or reject companies
+User registers as Candidate or Company
 
-Remove job postings
+Company accounts require admin approval
 
-System statistics dashboard (admin stats)
+Approved companies create job postings
 
-🧱 Tech Stack
+Candidates apply to open positions
+
+Companies review and manage applications
+
+Admin oversees platform activity
+
+Tech Stack
 
 Node.js
 
@@ -61,61 +74,37 @@ Prisma ORM
 
 JWT Authentication
 
-🔐 Roles & Permissions
-Action	Role
-View jobs	Public
-Apply to job	CANDIDATE
-Create job	Approved COMPANY
-Manage applications	Job owner COMPANY
-Approve companies	ADMIN
-Remove jobs	ADMIN
-View system stats	ADMIN
-📌 API Routes Overview
-Auth
-POST /auth/register
-POST /auth/login
+Getting Started
+Requirements
 
-Jobs
-GET    /jobs
-GET    /jobs/:id
-POST   /jobs            (COMPANY)
-PUT    /jobs/:id        (COMPANY)
-DELETE /jobs/:id        (COMPANY)
+Node.js v18+
 
-Applications
-POST /jobs/:jobId/apply     (CANDIDATE)
-GET  /applications         (CANDIDATE)
-PUT  /applications/:id     (COMPANY)
+PostgreSQL
 
-Admin
-GET    /admin/stats
-PUT    /admin/companies/:id/approve
-DELETE /admin/jobs/:id
-
-📊 Admin Stats Example Response
-{
-  "users": 120,
-  "jobs": {
-    "total": 45,
-    "open": 30
-  },
-  "applications": 310
-}
-
-⚙️ Setup & Installation
+Installation
 git clone https://github.com/your-username/job-board-api.git
 cd job-board-api
 npm install
 
 Environment Variables
 
-Create a .env file:
+Create a .env file in the project root:
 
 DATABASE_URL=postgresql://user:password@localhost:5432/jobboard
 JWT_SECRET=your_secret_key
 
-Run Migrations
+Database Setup
 npx prisma migrate dev
 
-Start the Server
+Run the Application
 npm run dev
+
+Project Goals
+
+Apply real-world backend business rules
+
+Practice clean architecture and code organization
+
+Implement secure authentication and authorization
+
+Serve as a portfolio-ready backend project
