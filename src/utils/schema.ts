@@ -6,15 +6,20 @@ export const authSchema = z.object({
   password: z.string().min(6).max(100),
 });
 
-export const registerSchema = z.discriminatedUnion('role', [
+export const registerSchema = z.discriminatedUnion("role", [
   z.object({
-    role: z.literal('CANDIDATE'),
+    role: z.literal("CANDIDATE"),
     email: z.string().email(),
     password: z.string().min(6),
   }),
-  
-    z.object({
-    role: z.literal('COMPANY'),
+  z.object({
+    role: z.literal("ADMIN"),
+    email: z.string().email(),
+    password: z.string().min(6),
+  }),
+
+  z.object({
+    role: z.literal("COMPANY"),
     email: z.string().email(),
     password: z.string().min(6),
     companyName: z.string().min(3).max(100),
@@ -30,7 +35,7 @@ export const jobSchema = z.object({
   salary: z.number().min(0),
   category: z.string().min(3).max(100),
   experienceLevel: z.string().min(3).max(100),
-}); 
+});
 
 export const updateJobSchema = z.object({
   title: z.string().min(3).max(100).optional(),
@@ -39,12 +44,12 @@ export const updateJobSchema = z.object({
   salary: z.number().min(0).optional(),
   category: z.string().min(3).max(100).optional(),
   experienceLevel: z.string().min(3).max(100).optional(),
-  status: z.enum(["OPEN","CLOSED"]).optional(),
+  status: z.enum(["OPEN", "CLOSED"]).optional(),
 });
 
 export const applyJobSchema = z.object({
-  cvUrl: z.string().url(),  
-}); 
+  cvUrl: z.string().url(),
+});
 
 export const updateApplicationSchema = z.object({
   status: z.nativeEnum(ApplicationStatus),
@@ -53,4 +58,3 @@ export const updateApplicationSchema = z.object({
 export type JobInput = z.infer<typeof jobSchema>;
 export type UpdateJobInput = z.infer<typeof updateJobSchema>;
 export type ApplyJobInput = z.infer<typeof applyJobSchema>;
-  

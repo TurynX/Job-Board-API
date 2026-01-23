@@ -1,10 +1,22 @@
 import { prisma } from "../lib/db";
 import { comparePassword, hashPassword } from "../utils/password";
 import { generateToken } from "../utils/jwt";
-import { CompanyExistsError, InvalidCredentialsError, UserExistsError, UserNotFoundError,} from "../utils/error";
+import {
+  CompanyExistsError,
+  InvalidCredentialsError,
+  UserExistsError,
+  UserNotFoundError,
+} from "../utils/error";
 
 export async function registerService(input: any) {
-  const { email, password, role, companyName, companyWebsite, companyDescription } = input;
+  const {
+    email,
+    password,
+    role,
+    companyName,
+    companyWebsite,
+    companyDescription,
+  } = input;
 
   const existingUser = await prisma.users.findUnique({
     where: { email },
@@ -16,7 +28,7 @@ export async function registerService(input: any) {
 
   if (role === "COMPANY") {
     const existingCompany = await prisma.companies.findFirst({
-      where: { name:companyName },
+      where: { name: companyName },
     });
 
     if (existingCompany) {
@@ -28,8 +40,6 @@ export async function registerService(input: any) {
   if (!hashedPassword) {
     throw new InvalidCredentialsError();
   }
-
-
 
   const result = await prisma.$transaction(async (tx) => {
     const user = await tx.users.create({
@@ -47,13 +57,12 @@ export async function registerService(input: any) {
       company = await tx.companies.create({
         data: {
           userId: user.id,
-          name:companyName,
+          name: companyName,
           website: companyWebsite,
           description: companyDescription,
-          isApproved: false,
+          isApproved: true,
         },
       });
-
     }
 
     return { user, company };
@@ -75,7 +84,6 @@ export async function registerService(input: any) {
   };
 }
 
-
 export async function loginService(email: string, password: string) {
   const user = await prisma.users.findUnique({
     where: { email },
@@ -88,7 +96,6 @@ export async function loginService(email: string, password: string) {
   if (!isPasswordValid) {
     throw new InvalidCredentialsError();
   }
-
 
   const token = generateToken({
     userId: user.id,

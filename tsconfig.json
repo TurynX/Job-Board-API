@@ -5,7 +5,7 @@
     "moduleResolution": "node",
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "types": ["node"],
+    "types": ["node", "jest"],
     "lib": ["esnext", "dom"],
     "strict": true,
     "verbatimModuleSyntax": false,
