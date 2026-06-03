@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Applications - JobBoard</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .app-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    .app-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .app-info h3 {
+      font-size: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+    .app-meta {
+      display: flex;
+      gap: 1rem;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
+    @media (max-width: 640px) {
+      .app-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="/" class="logo">JobBoard</a>
+      <div class="nav-links">
+        <a href="/jobList.html">Browse Jobs</a>
+        <a href="/myApplications.html">My Applications</a>
+        <button onclick="logout()" class="btn btn-outline">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container mt-4">
+    <h1 class="mb-4">My Applications</h1>
+    <div id="applicationsContainer" class="app-grid">
+      <div class="text-center py-8">
+        <p class="text-muted">Loading your applications...</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const userRaw = localStorage.getItem('user');
+
+    if (!token || !userRaw) {
+      window.location.href = '/login.html';
+    }
+
+    const user = JSON.parse(userRaw);
+    if (user.role !== 'CANDIDATE') {
+      window.location.href = '/login.html';
+    }
+
+    async function loadApplications() {
+      try {
+        const response = await fetch('/api/applications', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        
+        if (response.status === 401) {
+          logout();
+          return;
+        }
+
+        const apps = data.applications || data.data || [];
+        const container = document.getElementById('applicationsContainer');
+
+        if (apps.length === 0) {
+          container.innerHTML = '<div class="card text-center"><p>You haven\'t applied to any jobs yet.</p><a href="/jobList.html" class="btn btn-primary mt-4">Browse Jobs</a></div>';
+          return;
+        }
+
+        container.innerHTML = apps.map(app => `
+          <div class="card app-card">
+            <div class="app-info">
+              <h3>${app.job?.title || 'Job Title'}</h3>
+              <p class="text-muted">${app.job?.companyName || 'Company'}</p>
+              <div class="app-meta">
+                <span>Applied on: ${new Date(app.appliedAt || app.createdAt).toLocaleDateString()}</span>
+                <span>Status: <span class="badge ${getStatusBadge(app.status)}">${app.status}</span></span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <a href="${app.cvUrl}" target="_blank" class="btn btn-outline">View CV</a>
+              <a href="/jobDetails.html?id=${app.jobId}" class="btn btn-primary">Job Details</a>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        document.getElementById('applicationsContainer').innerHTML = '<div class="card text-center"><p>Error loading applications.</p></div>';
+      }
+    }
+
+    function getStatusBadge(status) {
+      switch(status) {
+        case 'PENDING': return 'badge-warning';
+        case 'ACCEPTED': return 'badge-success';
+        case 'REJECTED': return 'badge-danger';
+        case 'REVIEWED': return 'badge-success';
+        default: return 'badge-outline';
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    loadApplications();
+  </script>
+</body>
+</html>
